@@ -202,5 +202,3 @@ export default function RecipeListPage() {
     </section>
   );
 }
-
-const namernaLintNapaka = 123;
