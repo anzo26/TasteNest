@@ -7,19 +7,42 @@ import { SEARCH_FILTERS, getCategories, getIngredients, searchRecipes } from '..
 
 const PREP_TIME_OPTIONS = [15, 30, 45, 60, 90];
 
+
+function RecipeSearchForm({ initialQuery, onSearch }) {
+  const [query, setQuery] = useState(initialQuery);
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    onSearch(query.trim());
+  };
+
+  return (
+    <form className="search" role="search" onSubmit={handleSubmit}>
+      <Icon name="search" size={20} className="search-icon" />
+      <input
+        type="search"
+        aria-label="Iskanje po nazivu"
+        placeholder="Npr. juha, palačinke, testenine …"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
+      <button className="button" type="submit">Išči</button>
+    </form>
+  );
+}
+
+
 /** Filters live in the URL so a search can be bookmarked, shared and navigated back to. */
 export default function RecipeListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = Object.fromEntries(SEARCH_FILTERS.map((key) => [key, searchParams.get(key) ?? '']));
   const filtersKey = searchParams.toString();
 
-  const [query, setQuery] = useState(filters.q);
   const [options, setOptions] = useState({ categories: [], ingredients: [] });
-  const [recipes, setRecipes] = useState(null);
-  const [error, setError] = useState(null);
-
-  // Keep the text box in sync when the URL changes through back/forward navigation.
-  useEffect(() => setQuery(filters.q), [filters.q]);
+  const [searchResult, setSearchResult] = useState(null);
+  const currentResult = searchResult?.key === filtersKey ? searchResult : null;
+  const recipes = currentResult?.recipes ?? null;
+  const error = currentResult?.error ?? null;
 
   useEffect(() => {
     Promise.all([getCategories(), getIngredients()])
@@ -27,16 +50,36 @@ export default function RecipeListPage() {
       .catch(() => { /* filters stay empty; the list itself reports API errors */ });
   }, []);
 
+
   useEffect(() => {
     const controller = new AbortController();
-    setError(null);
-    searchRecipes(Object.fromEntries(new URLSearchParams(filtersKey)), { signal: controller.signal })
-      .then(setRecipes)
+
+    searchRecipes(
+      Object.fromEntries(new URLSearchParams(filtersKey)),
+      { signal: controller.signal }
+    )
+      .then((recipes) => {
+        if (!controller.signal.aborted) {
+          setSearchResult({
+            key: filtersKey,
+            recipes,
+            error: null,
+          });
+        }
+      })
       .catch((err) => {
-        if (err.name !== 'AbortError') setError(err.message);
+        if (!controller.signal.aborted && err.name !== 'AbortError') {
+          setSearchResult({
+            key: filtersKey,
+            recipes: null,
+            error: err.message,
+          });
+        }
       });
+
     return () => controller.abort();
   }, [filtersKey]);
+
 
   const applyFilter = (key, value) => {
     const next = new URLSearchParams(searchParams);
@@ -45,13 +88,11 @@ export default function RecipeListPage() {
     setSearchParams(next);
   };
 
-  const onSearch = (event) => {
-    event.preventDefault();
-    applyFilter('q', query.trim());
+  const onSearch = (query) => {
+    applyFilter('q', query);
   };
 
   const clearFilters = () => {
-    setQuery('');
     setSearchParams({});
   };
 
@@ -66,17 +107,11 @@ export default function RecipeListPage() {
           Poišči jed po nazivu, sestavini, ki jo imaš doma, ali času, ki ga imaš na voljo.
         </p>
 
-        <form className="search" role="search" onSubmit={onSearch}>
-          <Icon name="search" size={20} className="search-icon" />
-          <input
-            type="search"
-            aria-label="Iskanje po nazivu"
-            placeholder="Npr. juha, palačinke, testenine …"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          <button className="button" type="submit">Išči</button>
-        </form>
+        <RecipeSearchForm
+          key={filters.q}
+          initialQuery={filters.q}
+          onSearch={onSearch}
+        />
       </header>
 
       <div className="filters">
