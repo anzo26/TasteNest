@@ -103,7 +103,8 @@ describe('seed', () => {
   });
 
   it('skips demo accounts and recipes when DEMO_PASSWORD is not set', async () => {
-    const { DEMO_PASSWORD, ...withoutDemo } = env;
+    const withoutDemo = { ...env };
+    delete withoutDemo.DEMO_PASSWORD;
     await seed(prisma, withoutDemo);
 
     expect(await prisma.user.count()).toBe(1);

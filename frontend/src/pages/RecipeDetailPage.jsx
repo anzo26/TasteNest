@@ -8,18 +8,43 @@ import { formatQuantity, formatServings, splitSteps } from '../services/format.j
 export default function RecipeDetailPage() {
   const { id } = useParams();
   const { user, request } = useAuth();
-  const [recipe, setRecipe] = useState(null);
-  const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
+  const currentResult =
+    result?.id === id && result?.request === request
+      ? result
+      : null;
+
+  const recipe = currentResult?.recipe ?? null;
+  const error = currentResult?.error ?? null;
 
   useEffect(() => {
     let active = true;
-    setRecipe(null);
-    setError(null);
-    // Authenticated when possible so authors can still open their own hidden recipes.
+
     request(`/recipes/${id}`)
-      .then((res) => active && setRecipe(res.recipe))
-      .catch((err) => active && setError(err));
-    return () => { active = false; };
+      .then((res) => {
+        if (active) {
+          setResult({
+            id,
+            request,
+            recipe: res.recipe,
+            error: null,
+          });
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setResult({
+            id,
+            request,
+            recipe: null,
+            error: err,
+          });
+        }
+      });
+
+    return () => {
+      active = false;
+    };
   }, [id, request]);
 
   if (error) {
