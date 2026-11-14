@@ -64,6 +64,8 @@ jobs:
 
       - name: Build frontend
         working-directory: frontend
+        env:
+          VITE_API_URL: https://tastenest-api.onrender.com/api
         run: npm run build
 
       - name: Upload frontend artifact
@@ -259,3 +261,25 @@ jobs:
             --get \
             --data-urlencode "imgURL=$IMAGE_URL" \
             "$RENDER_DEPLOY_HOOK_URL"
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend-dist
+
+      - name: Deploy frontend to Netlify
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          if [ -z "$NETLIFY_AUTH_TOKEN" ] || [ -z "$NETLIFY_SITE_ID" ]; then
+            echo "::error::Netlify deployment secrets are missing"
+            exit 1
+          fi
+
+          npx --yes netlify-cli deploy \
+            --prod \
+            --no-build \
+            --dir=frontend-dist \
+            --site="$NETLIFY_SITE_ID"
