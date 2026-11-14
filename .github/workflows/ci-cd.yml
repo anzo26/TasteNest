@@ -93,6 +93,26 @@ jobs:
           name: backend-build
           path: backend/build/
           if-no-files-found: error
+
+      - name: Build backend Docker image
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            -t ghcr.io/anzo26/tastenest-api:${{ github.sha }} \
+            ./backend
+
+      - name: Save Docker image as artifact
+        run: |
+          docker save ghcr.io/anzo26/tastenest-api:${{ github.sha }} \
+            | gzip > backend-image.tar.gz
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-docker-image
+          path: backend-image.tar.gz
+          if-no-files-found: error
+          retention-days: 7
   
   test:
     name: test
