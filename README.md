@@ -189,3 +189,30 @@ Fotografije demo receptov in prijavne strani so v `frontend/src/assets/photos/` 
 | `palacinke.jpg` | Line 1921 | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Crêpe à la confiture de fruit](https://commons.wikimedia.org/wiki/File:Cr%C3%AApe_%C3%A0_la_confiture_de_fruit.jpg) |
 | `testenine-s-paradiznikovo-omako.jpg` | HaJunkiyada | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | [Spaghetti with Tomato Sauce](https://commons.wikimedia.org/wiki/File:Liat_Portal_for_Foodie_Disorder_-_Spaghetti_with_Tomato_Sauce.jpg) |
 | `paradiznikova-omaka.jpg` | Dennis Klein | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Fresh Tomato Sauce](https://commons.wikimedia.org/wiki/File:Fresh_Tomato_Sauce_(Unsplash).jpg) |
+
+## CI/CD – GitHub Actions
+
+[![CI/CD](https://github.com/anzo26/TasteNest/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/anzo26/TasteNest/actions/workflows/ci-cd.yml)
+
+Aplikacija TasteNest uporablja avtomatiziran CI/CD cevovod z GitHub Actions. Workflow se sproži ob vsakem Pull Requestu v vejo `main` in ob vsakem pushu na `main`.
+
+### Faze cevovoda
+
+| Faza | Opis |
+|---|---|
+| **Lint** | ESLint preveri slog in kakovost JavaScript kode frontenda in backenda. |
+| **Build** | Zgradi React frontend, pripravi backend in Docker sliko ter shrani artefakte. Za hitrejšo namestitev odvisnosti uporablja npm cache. |
+| **Test** | Izvede teste frontenda in backenda z Vitest. Poročili o pokritosti kode se shranita kot artefakta. |
+| **Deploy** | Ob uspešnem pushu na `main` objavi Docker sliko v GHCR, izvede Prisma migracije, sproži namestitev backenda na Render ter objavi frontend na Netlify. |
+
+Job `deploy` se izvede samo, če so jobi `lint`, `build` in `test` uspešni. V veji `main` so vsi trije določeni kot obvezne statusne preverbe pred združitvijo Pull Requesta.
+
+Za deployment se uporabljajo artefakti iz faze `build`, brez ponovne gradnje aplikacije. Občutljive nastavitve so shranjene kot GitHub Environment Secrets v okolju `production`.
+
+### Nameščena aplikacija
+
+- **Frontend:** https://tastenest-anzo26.netlify.app
+- **Backend API:** https://tastenest-api.onrender.com/api
+- **Preverjanje delovanja API-ja:** https://tastenest-api.onrender.com/api/health
+
+Frontend gostuje na Netlify, backend na Render, podatki pa se hranijo v PostgreSQL podatkovni bazi na Renderju.
