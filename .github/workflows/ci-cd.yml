@@ -216,6 +216,35 @@ jobs:
         run: |
           docker push ghcr.io/anzo26/tastenest-api:${{ github.sha }}
 
+      - name: Download backend build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-build
+          path: backend-build
+
+      - name: Setup Node.js for migrations
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend-build/package-lock.json
+
+      - name: Install Prisma CLI dependencies
+        working-directory: backend-build
+        run: npm ci --include=dev
+
+      - name: Apply production database migrations
+        working-directory: backend-build
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PRODUCTION_DATABASE_URL is not configured"
+            exit 1
+          fi
+
+          npx prisma migrate deploy
+
       - name: Deploy backend to Render
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
