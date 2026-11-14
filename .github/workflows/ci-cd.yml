@@ -216,3 +216,17 @@ jobs:
         run: |
           docker push ghcr.io/anzo26/tastenest-api:${{ github.sha }}
 
+      - name: Deploy backend to Render
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          IMAGE_URL: ghcr.io/anzo26/tastenest-api:${{ github.sha }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK_URL is not configured"
+            exit 1
+          fi
+
+          curl --fail-with-body --silent --show-error \
+            --get \
+            --data-urlencode "imgURL=$IMAGE_URL" \
+            "$RENDER_DEPLOY_HOOK_URL"
